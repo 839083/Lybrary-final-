@@ -27,17 +27,17 @@ const AdminDashboard = () => {
 
   /* ===== FETCH DATA ===== */
   const fetchBooks = async () => {
-    const res = await fetch("https://lybrary2-0-1.onrender.com/api/books");
+    const res = await fetch("https://lybrary-final.onrender.com/api/books");
     setBooks(await res.json());
   };
 
   const fetchStudents = async () => {
-    const res = await fetch("https://lybrary2-0-1.onrender.com/api/auth/students");
+    const res = await fetch("https://lybrary-final.onrender.com/api/auth/students");
     setStudents(await res.json());
   };
 
   const fetchAssignments = async () => {
-    const res = await fetch("https://lybrary2-0-1.onrender.com/api/assignments");
+    const res = await fetch("https://lybrary-final.onrender.com/api/assignments");
     setAssignments(await res.json());
   };
 
@@ -45,7 +45,7 @@ const AdminDashboard = () => {
   const addBook = async () => {
     if (!bookData.name || !bookData.price) return alert("Fill all fields");
 
-    await fetch("https://lybrary2-0-1.onrender.com/api/books/add", {
+    await fetch("https://lybrary-final.onrender.com/api/books/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bookData),
@@ -60,7 +60,7 @@ const AdminDashboard = () => {
     if (!assignData.bookId || !assignData.studentEmail)
       return alert("Select book & student");
 
-    await fetch("https://lybrary2-0-1.onrender.com/api/assignments/assign", {
+    await fetch("https://lybrary-final.onrender.com/api/assignments/assign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(assignData),
