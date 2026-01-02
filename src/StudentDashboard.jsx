@@ -19,7 +19,7 @@ const StudentDashboard = () => {
   const fetchAssignedBooks = async () => {
     try {
       const res = await fetch(
-        `https://lybrary2-0-1.onrender.com/api/assignments/student/${user.email}`
+        `https://lybrary-final.onrender.com/api/assignments/student/${user.email}`
       );
       const data = await res.json();
       setAssignedBooks(data);
