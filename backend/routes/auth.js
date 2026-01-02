@@ -11,22 +11,26 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 /* ================= SIGNUP ================= */
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, role, enrollment, adminCode } = req.body;
+    let { name, email, password, role, enrollment, adminCode } = req.body;
 
-    // check if user already exists
+    // 🔐 Normalize email (CRITICAL)
+    email = email.toLowerCase().trim();
+
+    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // hash password
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
-      role,
+      role, // role decided ONLY here
       enrollment: role === "student" ? enrollment : "",
       adminCode: role === "admin" ? adminCode : "",
     });
@@ -40,6 +44,7 @@ router.post("/signup", async (req, res) => {
       role: newUser.role,
     });
   } catch (error) {
+    console.error("Signup error:", error);
     res.status(500).json({
       message: "Signup failed",
       error: error.message,
@@ -47,35 +52,42 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-/* ================= LOGIN ================= */
+/* ================= LOGIN (RBAC CORRECT) ================= */
 router.post("/login", async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    let { email, password } = req.body;
 
-    const user = await User.findOne({ email, role });
+    // 🔐 Normalize email
+    email = email.toLowerCase().trim();
+
+    // Find user ONLY by email
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // ❗ Google users won't have password
+    // Google user trying password login
     if (!user.password) {
       return res.status(400).json({
         message: "Please login using Google",
       });
     }
 
+    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // ✅ Role comes ONLY from DB
     res.status(200).json({
       message: "Login successful",
       name: user.name,
-      role: user.role,
       email: user.email,
+      role: user.role,
     });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({
       message: "Login failed",
       error: error.message,
@@ -93,11 +105,13 @@ router.post("/google", async (req, res) => {
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
-    const { name, email } = ticket.getPayload();
+    const payload = ticket.getPayload();
+    let email = payload.email.toLowerCase().trim();
+    const name = payload.name;
 
     let user = await User.findOne({ email });
 
-    // If user doesn't exist, create as STUDENT by default
+    // New Google user → STUDENT by default
     if (!user) {
       user = new User({
         name,
@@ -115,6 +129,7 @@ router.post("/google", async (req, res) => {
       role: user.role,
     });
   } catch (error) {
+    console.error("Google login error:", error);
     res.status(401).json({
       message: "Google authentication failed",
       error: error.message,
@@ -125,10 +140,7 @@ router.post("/google", async (req, res) => {
 /* ================= GET ALL STUDENTS ================= */
 router.get("/students", async (req, res) => {
   try {
-    const students = await User.find({
-      role: { $regex: /^student$/i },
-    }).select("name email");
-
+    const students = await User.find({ role: "student" }).select("name email");
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({

@@ -1,9 +1,11 @@
 const express = require("express");
 const Assignment = require("../models/Assignment");
+const { isAdmin, isStudentSelf } = require("../middleware/authRole");
+
 const router = express.Router();
 
-/* ================= ASSIGN BOOK TO STUDENT ================= */
-router.post("/assign", async (req, res) => {
+/* ================= ASSIGN BOOK TO STUDENT (ADMIN ONLY) ================= */
+router.post("/assign", isAdmin, async (req, res) => {
   try {
     const { bookId, studentEmail, startDate, endDate } = req.body;
 
@@ -13,7 +15,7 @@ router.post("/assign", async (req, res) => {
 
     const assignment = new Assignment({
       bookId,
-      studentEmail,
+      studentEmail: studentEmail.toLowerCase().trim(),
       startDate,
       endDate,
     });
@@ -32,8 +34,8 @@ router.post("/assign", async (req, res) => {
   }
 });
 
-/* ================= GET ALL ASSIGNMENTS (ADMIN) ================= */
-router.get("/", async (req, res) => {
+/* ================= GET ALL ASSIGNMENTS (ADMIN ONLY) ================= */
+router.get("/", isAdmin, async (req, res) => {
   try {
     const assignments = await Assignment.find().populate("bookId");
     res.status(200).json(assignments);
@@ -45,10 +47,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-/* ================= GET ASSIGNED BOOKS FOR STUDENT ================= */
-router.get("/student/:email", async (req, res) => {
+/* ================= GET ASSIGNED BOOKS FOR STUDENT (SELF ONLY) ================= */
+router.get("/student/:email", isStudentSelf, async (req, res) => {
   try {
-    const { email } = req.params;
+    const email = req.params.email.toLowerCase().trim();
 
     const assignments = await Assignment.find({ studentEmail: email })
       .populate("bookId");

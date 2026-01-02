@@ -5,8 +5,12 @@ import { GoogleLogin } from "@react-oauth/google";
 const Auth = () => {
   const navigate = useNavigate();
 
-  const [isLogin, setIsLogin] = useState(false);
+  // ✅ Login shown first
+  const [isLogin, setIsLogin] = useState(true);
+
+  // Used ONLY for signup
   const [role, setRole] = useState("student");
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -35,37 +39,42 @@ const Auth = () => {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, role }),
+        body: JSON.stringify({
+          ...formData,
+          role: isLogin ? undefined : role, // ✅ role only during signup
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         alert(data.message || "Something went wrong");
-      } else {
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            name: data.name || formData.name,
-            email: data.email || formData.email,
-            role: data.role || role,
-          })
-        );
-
-        navigate(
-          (data.role || role) === "admin"
-            ? "/admin-dashboard"
-            : "/student-dashboard"
-        );
-
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-          enrollment: "",
-          adminCode: "",
-        });
+        return;
       }
+
+      // ✅ ROLE-BASED AUTH (backend is source of truth)
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+        })
+      );
+
+      navigate(
+        data.role === "admin"
+          ? "/admin-dashboard"
+          : "/student-dashboard"
+      );
+
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        enrollment: "",
+        adminCode: "",
+      });
     } catch {
       alert("Server not responding");
     } finally {
@@ -89,6 +98,7 @@ const Auth = () => {
         return;
       }
 
+      // ✅ Role comes from backend
       localStorage.setItem(
         "user",
         JSON.stringify({
@@ -114,25 +124,32 @@ const Auth = () => {
         <div className="auth-container">
           <h2>{isLogin ? "Login" : "Signup"} - Library Management</h2>
 
-          {/* ROLE SWITCH */}
-          <div className="role-switch">
-            <button
-              type="button"
-              className={role === "student" ? "active" : ""}
-              onClick={() => setRole("student")}
-            >
-              Student
-            </button>
-            <button
-              type="button"
-              className={role === "admin" ? "active" : ""}
-              onClick={() => setRole("admin")}
-            >
-              Admin
-            </button>
-          </div>
+          {/* ================= ROLE DROPDOWN (SIGNUP ONLY) ================= */}
+          {!isLogin && (
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ color: "#b9bbbe", fontWeight: 600 }}>
+                Who are you?
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                style={{
+                  width: "100%",
+                  marginTop: 8,
+                  padding: 12,
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#202225",
+                  color: "#ffffff",
+                }}
+              >
+                <option value="student">Student</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          )}
 
-          {/* FORM */}
+          {/* ================= FORM ================= */}
           <form onSubmit={handleSubmit}>
             {!isLogin && (
               <input
@@ -198,17 +215,16 @@ const Auth = () => {
             </button>
           </form>
 
-          {/* GOOGLE AUTH (LOGIN + SIGNUP) */}
+          {/* ================= GOOGLE LOGIN ================= */}
           <div className="google-box">
             <p>or</p>
             <GoogleLogin
               onSuccess={(res) => handleGoogleLogin(res.credential)}
               onError={() => alert("Google Authentication Failed")}
             />
-            
           </div>
 
-          {/* TOGGLE */}
+          {/* ================= TOGGLE ================= */}
           <p className="toggle-text">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
             <span onClick={() => setIsLogin(!isLogin)}>
@@ -218,7 +234,6 @@ const Auth = () => {
         </div>
       </div>
 
-      {/* CSS */}
       <style>{`
   * {
     box-sizing: border-box;
