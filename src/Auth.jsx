@@ -32,8 +32,8 @@ const Auth = () => {
     setLoading(true);
 
     const url = isLogin
-      ? "http://localhost:5000/api/auth/login"
-      : "http://localhost:5000/api/auth/signup";
+      ? "https://lybrary-final.onrender.com/api/auth/login"
+      : "https://lybrary-final.onrender.com/api/auth/signup";
 
     try {
       const res = await fetch(url, {
@@ -85,7 +85,7 @@ const Auth = () => {
   /* ================= GOOGLE AUTH ================= */
   const handleGoogleLogin = async (credential) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/google", {
+      const res = await fetch("https://lybrary-final.onrender.com/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credential }),
